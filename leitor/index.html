@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Leitor</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap">
+<style>
+:root{--lib:#f6f6f4;--plank:#d3d0c9;--table:#587080;--paper:#efe7d6;--ink:#25221d;--card:#fff;--acc:#2f5d8a;--c1:#f5dd7d;--c2:#b7dfb9;--c3:#efb7c8;--fs:18px;
+--ser:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;--san:system-ui,-apple-system,"Segoe UI",sans-serif}
+:root[data-theme=dark]{--lib:#14181d;--plank:#2a313a;--table:#0e1318;--paper:#1f242b;--ink:#d6d9de;--card:#1b232d;--acc:#7fb0e0;--c1:#6b5d12;--c2:#24593a;--c3:#6a2b44}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;font-family:var(--san);background:var(--lib);color:var(--ink)}
+body[data-view=read]{background:var(--table);color:#eef1f3}
+button{font:inherit;color:inherit;background:none;border:1px solid color-mix(in srgb,currentColor 30%,transparent);border-radius:6px;padding:.35rem .7rem;cursor:pointer}
+button:hover:not(:disabled){border-color:currentColor}button:disabled{opacity:.35;cursor:default}
+:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:.4rem;padding:.6rem 1rem}
+header b{font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.sp{flex:1}
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:var(--c1);z-index:6;transition:width .2s}
+/* estante */
+#lib{max-width:900px;margin:0 auto;padding:1.5rem 1rem 4rem}
+#lib h1{font:600 1.7rem var(--ser);margin:0 0 2.2rem}
+.shelf{display:flex;align-items:flex-end;gap:3px;padding:0 .5rem;margin-bottom:2.5rem;border-bottom:10px solid var(--plank);overflow-x:auto;overflow-y:hidden;padding-top:12px}
+.bk{position:relative;display:flex;justify-content:space-between;align-items:center;flex:none;width:var(--s);height:var(--l);padding:.9rem 0;writing-mode:vertical-rl;text-decoration:none;overflow:hidden;box-shadow:inset -3px 0 0 rgba(0,0,0,.12);transition:transform .15s}
+.bk:hover,.bk:focus-visible{transform:translateY(-10px)}
+.bk b{font:600 .95rem var(--ser);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;min-height:0}.bk i{font-size:.7rem;opacity:.75;white-space:nowrap}
+.bk.flat{writing-mode:horizontal-tb;padding:0 1rem;gap:.8rem;transform:translateX(var(--x,0))}
+.bk.flat:hover,.bk.flat:focus-visible{transform:translate(var(--x,0),-4px)}
+.bk u{position:absolute;left:0;bottom:0;height:4px;background:currentColor;opacity:.45}
+.stack{display:flex;flex-direction:column-reverse;margin-left:auto;padding-left:1rem}
+/* livro aberto */
+#stage{display:flex;flex-direction:column;align-items:center;padding:.5rem 0 1rem}
+#book{position:relative;width:calc(100vw - 24px);height:min(760px,calc(100dvh - 150px));background:var(--paper);color:var(--ink);box-shadow:0 14px 40px rgba(0,0,0,.35);border-radius:3px}
+@media(min-width:1100px){#book{width:min(980px,calc(100vw - 380px))}}
+#book::after{content:"";position:absolute;top:0;bottom:0;left:50%;width:80px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,rgba(0,0,0,.16) 50%,transparent);pointer-events:none}
+@media(max-width:799px){#book::after{display:none}}
+#rd{position:absolute;inset:3.2rem 2.4rem 3rem;overflow:hidden}
+#pg{height:100%;column-gap:4.5rem;column-fill:auto;font:var(--fs)/1.6 var(--ser);transition:transform .22s ease}
+@media(prefers-reduced-motion:reduce){#pg{transition:none}}
+#pg h2{font-size:1.35em;line-height:1.25;margin:0 0 1.2rem;break-after:avoid}
+#pg p{margin:0;text-indent:1.5em;text-align:justify;hyphens:auto;orphans:2;widows:2}
+#pg h2+p{text-indent:0}
+mark{color:inherit;border-radius:2px;cursor:pointer}.c1{background:var(--c1)}.c2{background:var(--c2)}.c3{background:var(--c3)}
+mark.n{border-bottom:2px solid var(--acc)}
+.pn,.ft{position:absolute;font-size:.78rem;color:color-mix(in srgb,var(--ink) 65%,transparent)}
+.pn{top:1.1rem}.ft{bottom:1rem;font-style:italic}
+.pn.l,.ft.l{left:2.4rem}.pn.r,.ft.r{right:2.4rem}
+#tb{display:flex;align-items:center;gap:1rem;margin-top:.8rem;font-size:.85rem}
+.mg{display:none;position:absolute;width:150px;padding:.45rem .6rem;background:var(--paper);color:var(--ink);font:italic .78rem/1.4 var(--san);border-top:3px solid;border-radius:2px;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
+.mg.l{right:calc(100% + 14px)}.mg.r{left:calc(100% + 14px)}
+@media(min-width:1100px){.mg{display:block}}
+#pg[data-hf=fraktur] h2{font:700 1.9em/1.15 "UnifrakturCook","Old English Text MT",var(--ser);text-align:center;margin-bottom:1.6rem}
+#pg p.h{font-weight:700;text-indent:0;text-align:left;margin:1.2em 0 .4em;break-after:avoid}
+#pg p.q{font-style:italic}#pg p.a{text-indent:0}
+.bk.art{padding:0;box-shadow:none}.bk.art img{display:block;width:100%;height:100%}
+.bk.rot img{position:absolute;left:50%;top:50%;width:var(--l);height:var(--s);transform:translate(-50%,-50%) rotate(-90deg)}
+/* painel e popup */
+aside{position:fixed;top:0;right:0;bottom:0;width:min(320px,90vw);z-index:8;background:var(--card);color:var(--ink);border-left:1px solid #0003;display:flex;flex-direction:column}
+.tabs{display:flex;gap:.4rem;padding:.7rem;border-bottom:1px solid #0002}.tabs button{flex:1}.tabs .on{background:var(--acc);border-color:var(--acc);color:var(--card)}
+#sbody{overflow:auto;padding:.5rem}
+.it{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #0002;border-radius:0;padding:.7rem .5rem}
+.it.cur{color:var(--acc);font-weight:600}.it small{display:block;opacity:.65;margin-bottom:.2rem}.it span{padding:0 .2em}.it em{display:block;margin-top:.3rem;opacity:.75}
+.mut{opacity:.7;padding:.5rem}
+#pp{position:fixed;z-index:9;background:var(--card);color:var(--ink);border:1px solid #0003;border-radius:8px;padding:.4rem;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.cl{display:flex;gap:.4rem;align-items:center}.dot{width:28px;height:28px;padding:0;border-radius:50%}
+.nb{display:grid;gap:.4rem;width:240px}.nb textarea{font:inherit;font-size:.9rem;background:transparent;color:var(--ink);border:1px solid #0004;border-radius:6px;padding:.4rem;resize:vertical}
+.row{display:flex;gap:.4rem}.del{color:#c0392b}
+</style>
+</head>
+<body data-view="lib">
+<header>
+  <button id="back" hidden>← Estante</button>
+  <b id="ttl">Leitor</b><span class="sp"></span>
+  <button id="am" title="Diminuir letra">A−</button><button id="ap" title="Aumentar letra">A+</button>
+  <button id="th" title="Alternar tema">◐</button><button id="mn" hidden title="Capítulos e notas">☰</button>
+</header>
+<div id="bar"></div>
+<main id="lib"></main>
+<section id="stage" hidden>
+  <div id="book">
+    <div id="rd"><div id="pg"></div></div>
+    <span class="pn l" id="n1"></span><span class="pn r" id="n2"></span>
+    <span class="ft l" id="f1"></span><span class="ft r" id="f2"></span>
+  </div>
+  <div id="tb"><button id="prev" aria-label="Página anterior">‹</button><span id="pos"></span><button id="next" aria-label="Próxima página">›</button></div>
+</section>
+<aside id="side" hidden>
+  <div class="tabs"><button data-t="toc" class="on">Capítulos</button><button data-t="notes">Notas</button></div>
+  <div id="sbody"></div>
+</aside>
+<div id="pp" hidden></div>
+
+<script>
+/* ===== 1. ARMAZENAMENTO =====
+   A interface só usa estes métodos. Para ter contas no futuro, crie uma classe
+   com a mesma interface (ex.: SupabaseStore) e troque `new LocalStore()`. */
+class LocalStore {
+  constructor(){ this.p = 'leitor:v1:'; }
+  _g(k,d){ try { return JSON.parse(localStorage.getItem(this.p+k)) ?? d; } catch { return d; } }
+  _s(k,v){ try { localStorage.setItem(this.p+k, JSON.stringify(v)); } catch {} }
+  async getSettings(){ return this._g('settings', {}); }
+  async saveSettings(s){ this._s('settings', s); }
+  async getProgress(b){ return this._g('prog:'+b, null); }
+  async saveProgress(b,p){ this._s('prog:'+b, p); }
+  async listAnnotations(b){ return this._g('ann:'+b, []); }
+  async addAnnotation(b,a){ const l = await this.listAnnotations(b); l.push(a); this._s('ann:'+b, l); }
+  async updateAnnotation(b,id,patch){ this._s('ann:'+b, (await this.listAnnotations(b)).map(a => a.id===id ? {...a,...patch} : a)); }
+  async removeAnnotation(b,id){ this._s('ann:'+b, (await this.listAnnotations(b)).filter(a => a.id!==id)); }
+}
+const store = new LocalStore();
+
+/* ===== 2. FONTE DOS LIVROS =====
+   Lê books/index.js (lista) e books/<id>.js (conteúdo). Arquivos .js funcionam até abrindo o
+   index.html com duplo clique; sem eles, usa os livros de exemplo. Um parágrafo é texto puro
+   ou {k:'h'|'q'|'a', t:'texto'} (subtítulo, citação em itálico, referência). */
+const L = [
+ 'A leitura em páginas lado a lado imita o livro aberto sobre a mesa: o texto corre pela coluna da esquerda e, ao chegar ao fim, continua na da direita. Ao virar a página, o par seguinte aparece no mesmo lugar.',
+ 'O tamanho da letra muda a quantidade de texto em cada página, então o número de páginas é recalculado sempre que você ajusta a fonte ou redimensiona a janela. O ponto de leitura é mantido proporcionalmente.',
+ 'Tente selecionar uma frase e escrever uma nota. Em telas largas, a anotação aparece na margem, ao lado do trecho, como se tivesse sido escrita a lápis na borda da página. Em telas estreitas, ela fica na aba de notas.',
+ 'Os destaques são guardados com a posição exata do trecho dentro do parágrafo. Enquanto o texto do parágrafo não mudar, o trecho continua marcado, não importa em qual página ele caia.'];
+const SAMPLE = {id:'exemplo', title:'Guia do Leitor', author:'Exemplo', chapters:[
+ {title:'Como ler aqui', paragraphs:[
+  'Este é um livro de exemplo. Selecione qualquer trecho do texto com o mouse ou o dedo e escolha uma cor para destacá-lo.',
+  'Você também pode tocar em “Nota” para escrever um comentário sobre o trecho. Trechos com nota ficam sublinhados; toque neles para editar ou remover.',
+  'O ponto em que você parou é salvo automaticamente. Feche a aba, volte depois e a leitura continua do mesmo lugar.']},
+ {title:'Para onde isto vai', paragraphs:[
+  'Tudo o que você fez até aqui está guardado apenas neste navegador, em um módulo de armazenamento separado do resto do código.',
+  'Quando o projeto ganhar contas de usuário, basta trocar esse módulo por outro que grave em um servidor. A tela de leitura continua igual.',
+  'Para adicionar livros de verdade, coloque arquivos JSON na pasta books/ e liste-os em books/index.json.']},
+ {title:'Um capítulo longo', paragraphs:Array.from({length:14}, (_,i) => L[i%4])}
+]};
+const SAMPLES = [SAMPLE, ...[['caderno','Caderno de Campo'],['ensaios','Ensaios Soltos']].map(([id,title]) => ({...SAMPLE,id,title,author:'Seu nome'}))];
+const meta = b => ({id:b.id, title:b.title, author:b.author, n:b.chapters.length});
+const loadJS = src => new Promise(ok => { const x = document.createElement('script'); x.src = src; x.onload = () => ok(true); x.onerror = () => ok(false); document.head.append(x); });
+const source = {
+  async getLibrary(){ if (!window.BOOKS_INDEX) await loadJS('books/index.js'); return window.BOOKS_INDEX || SAMPLES.map(meta); },
+  async getBook(id){ window.BOOKS ||= {}; if (!window.BOOKS[id]) await loadJS('books/'+encodeURIComponent(id)+'.js'); return window.BOOKS[id] || SAMPLES.find(b => b.id===id) || null; }
+};
+
+/* ===== 3. INTERFACE ===== */
+const $ = s => document.querySelector(s);
+const T = p => typeof p==='string' ? p : p.t;
+const esc = t => t.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const el = (t,props={},...kids) => { const n = document.createElement(t); Object.assign(n,props); n.append(...kids); return n; };
+let S = {size:18, theme:null}, book = null, ch = 0, anns = [], pending = null, sp = 0, ns = 1, tm, nt, rt;
+const cols = () => innerWidth >= 800 ? 2 : 1;
+const unfreeze = pg => requestAnimationFrame(() => requestAnimationFrame(() => pg.style.transition = ''));
+
+function applySettings(){
+  const r = document.documentElement;
+  r.dataset.theme = S.theme || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+  r.style.setProperty('--fs', S.size+'px');
+}
+const persist = () => store.saveSettings(S);
+$('#ap').onclick = () => { S.size = Math.min(28, S.size+1); applySettings(); persist(); relayout(); };
+$('#am').onclick = () => { S.size = Math.max(14, S.size-1); applySettings(); persist(); relayout(); };
+$('#th').onclick = () => { S.theme = document.documentElement.dataset.theme==='dark' ? 'light' : 'dark'; applySettings(); persist(); };
+$('#back').onclick = () => location.hash = '#/';
+$('#mn').onclick = () => { const s = $('#side'); s.hidden = !s.hidden; if (!s.hidden) renderSide(document.querySelector('.tabs .on').dataset.t); };
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => renderSide(b.dataset.t));
+
+/* ---- estante ---- */
+const PAL = [['#f2f0ea','#1d2733'],['#1d2229','#f2f0ea'],['#d9582b','#fff'],['#2f5d8a','#fff'],['#e7a3b5','#2a1a20'],['#c9d8cf','#1d2733']];
+const hash = s => [...s].reduce((h,c) => (h*31 + c.charCodeAt(0)) >>> 0, 7);
+function bookEl(b,p){
+  const h = hash(b.id), [bg,fg] = PAL[h % PAL.length], long = b.title.length > 24;
+  const a = el('a',{href:'#/livro/'+encodeURIComponent(b.id), title:b.title+' · '+b.author, className:'bk'+(p?' flat':'')});
+  const src = p ? (b.flat || b.spine) : b.spine;
+  if (src) {   // arte própria: lombada (em pé) ou livro deitado (usa a lombada girada se não houver b.flat)
+    const img = el('img',{src, alt:b.title}); a.classList.add('art'); a.append(img);
+    a.style.cssText = p ? '--s:220px;--l:50px' : '--s:50px;--l:250px';
+    if (p && !b.flat) a.classList.add('rot');
+    img.onload = () => { const r = img.naturalWidth/img.naturalHeight, v = !p ? [250*r,250] : b.flat ? [230,230/r] : [220,220*r];
+      a.style.setProperty('--s', v[0]+'px'); a.style.setProperty('--l', v[1]+'px'); };
+  } else {     // sem arte: lombada desenhada em CSS (cor, tinta e textura opcionais em index.js)
+    a.append(el('b',{textContent:b.title}), ...(long ? [] : [el('i',{textContent:b.author})]));
+    a.style.cssText = `background:${b.color||bg};color:${b.ink||fg};` + (b.texture ? `background-image:url(${b.texture});background-size:cover;` : '') +
+      (p ? `--s:${Math.min(380,Math.max(180+h%90, 60+b.title.length*8))}px;--l:${38+h%14}px;--x:${h%16-8}px`
+         : `--s:${40+h%24}px;--l:${Math.min(380,Math.max(210+h%80, long ? 120+b.title.length*7 : 0))}px`);
+  }
+  if (p) { const u = el('u'); u.style.width = Math.round((p.ch+p.pct)/b.n*100)+'%'; a.append(u); }
+  return a;
+}
+async function showLibrary(){
+  book = null; document.title = 'Leitor'; document.body.dataset.view = 'lib'; $('#ttl').textContent = 'Leitor'; $('#bar').style.width = 0;
+  for (const s of ['#stage','#side','#back','#mn']) $(s).hidden = true;
+  const lib = $('#lib'); lib.hidden = false; lib.replaceChildren(el('h1',{textContent:'Estante'}));
+  const items = await Promise.all((await source.getLibrary()).map(async b => ({b, p: await store.getProgress(b.id)})));
+  const reading = items.filter(x => x.p).sort((x,y) => x.p.t - y.p.t), rest = items.filter(x => !x.p);
+  for (let i = 0; i < Math.max(1, Math.ceil(rest.length/10)); i++) {
+    const sh = el('div',{className:'shelf'}, ...rest.slice(i*10, i*10+10).map(x => bookEl(x.b)));
+    if (!i && reading.length) sh.append(el('div',{className:'stack'}, ...reading.map(x => bookEl(x.b, x.p))));
+    lib.append(sh);
+  }
+}
+
+/* ---- leitura em páginas duplas (colunas CSS) ---- */
+async function showBook(id){
+  const b = await source.getBook(id); if (!b) { location.hash = '#/'; return; }
+  book = b; anns = await store.listAnnotations(id);
+  const p = await store.getProgress(id) || {ch:0, pct:0};
+  $('#lib').hidden = true; $('#stage').hidden = false; $('#back').hidden = false; $('#mn').hidden = false;
+  document.body.dataset.view = 'read'; $('#ttl').textContent = b.title; document.title = b.title+' · Leitor';
+  goto(p.ch, p.pct);
+}
+function paraHtml(text,i){
+  let out = '', pos = 0;
+  for (const a of anns.filter(a => a.ch===ch && a.p===i).sort((x,y) => x.s-y.s)) {
+    if (a.s < pos) continue;
+    out += esc(text.slice(pos,a.s)) + `<mark data-id="${a.id}" class="c${a.c}${a.note?' n':''}">${esc(text.slice(a.s,a.e))}</mark>`;
+    pos = a.e;
+  }
+  return out + esc(text.slice(pos));
+}
+function render(){
+  const c = book.chapters[ch], pg = $('#pg'); pg.style.columnCount = cols(); pg.dataset.hf = book.headFont || '';
+  pg.replaceChildren(el('h2',{textContent:c.title}), ...c.paragraphs.map((t,i) => { const p = el('p',{className:t.k||''}); p.dataset.i = i; p.innerHTML = paraHtml(T(t),i); return p; }));
+}
+const metrics = () => { const W = $('#rd').clientWidth; return {step: W + (parseFloat(getComputedStyle($('#pg')).columnGap) || 0)}; };
+function setSpread(i,frac){
+  const pg = $('#pg'), m = metrics();
+  ns = Math.max(1, Math.ceil((pg.scrollWidth-1) / m.step));
+  sp = Math.max(0, Math.min(ns-1, frac===undefined ? i : Math.round(frac*ns)));
+  pg.style.transform = `translateX(${-sp*m.step}px)`;
+  hidePop(); chrome(); save();
+  clearTimeout(nt); nt = setTimeout(layoutNotes, pg.style.transition==='none' ? 30 : 270);
+}
+function goto(i,frac=0,fid){
+  ch = Math.max(0, Math.min(book.chapters.length-1, i)); render();
+  const pg = $('#pg'); pg.style.transition = 'none'; pg.style.transform = 'none';
+  const m = fid && pg.querySelector(`mark[data-id="${fid}"]`);
+  if (m) setSpread(Math.floor((m.getClientRects()[0].left - pg.getBoundingClientRect().left) / metrics().step));
+  else setSpread(0, frac);
+  unfreeze(pg);
+}
+const refresh = () => { render(); setSpread(sp); };
+function relayout(){
+  if (!book) return;
+  const f = sp/ns, pg = $('#pg'); pg.style.transition = 'none'; pg.style.columnCount = cols(); setSpread(0,f); unfreeze(pg);
+}
+function chrome(){
+  const c = cols(), b = sp*c, last = ch===book.chapters.length-1;
+  $('#n1').textContent = b+1; $('#n2').textContent = c>1 ? b+2 : '';
+  $('#f1').textContent = book.title; $('#f2').textContent = c>1 ? book.chapters[ch].title : '';
+  $('#pos').textContent = `Cap. ${ch+1}/${book.chapters.length} · ${sp+1}/${ns}`;
+  $('#prev').disabled = !ch && !sp; $('#next').disabled = last && sp===ns-1;
+}
+function save(){
+  if (!book) return;
+  $('#bar').style.width = (sp+1)/ns*100+'%';
+  clearTimeout(tm); tm = setTimeout(() => store.saveProgress(book.id, {ch, pct:sp/ns, t:Date.now()}), 300);
+}
+const next = () => { if (sp < ns-1) setSpread(sp+1); else if (ch < book.chapters.length-1) goto(ch+1); };
+const prev = () => { if (sp > 0) setSpread(sp-1); else if (ch > 0) goto(ch-1, 1); };
+$('#next').onclick = next; $('#prev').onclick = prev;
+addEventListener('keydown', e => {
+  if (!book || document.activeElement.tagName==='TEXTAREA') return;
+  if (e.key==='ArrowRight' || e.key==='PageDown') next();
+  if (e.key==='ArrowLeft' || e.key==='PageUp') prev();
+});
+let tx, ty;
+$('#book').addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, {passive:true});
+$('#book').addEventListener('touchend', e => {
+  const t = e.changedTouches[0], dx = t.clientX-tx, dy = t.clientY-ty;
+  if (getSelection().isCollapsed && Math.abs(dx) > 60 && Math.abs(dx) > 2*Math.abs(dy)) dx < 0 ? next() : prev();
+}, {passive:true});
+addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(relayout, 150); });
+
+/* notas na margem (telas largas): cada nota fica ao lado do trecho */
+function layoutNotes(){
+  document.querySelectorAll('.mg').forEach(n => n.remove());
+  if (!book || innerWidth < 1100) return;
+  const bk = $('#book'), b = bk.getBoundingClientRect(), r = $('#rd').getBoundingClientRect(), last = {l:0, r:0};
+  document.querySelectorAll('#pg mark.n').forEach(m => {
+    const q = m.getClientRects()[0]; if (!q || q.left < r.left-2 || q.left > r.right) return;
+    const a = anns.find(x => x.id===m.dataset.id), side = q.left < r.left + r.width/2 ? 'l' : 'r';
+    const n = el('div',{className:'mg '+side, textContent:a.note, onclick:() => editAnn(a.id, n.getBoundingClientRect())});
+    n.style.borderColor = `var(--c${a.c})`; n.style.top = Math.max(q.top - b.top - 4, last[side])+'px'; bk.append(n);
+    last[side] = parseFloat(n.style.top) + n.offsetHeight + 6;
+  });
+}
+
+/* ---- painel lateral ---- */
+function renderSide(tab){
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t===tab));
+  const sb = $('#sbody'); sb.replaceChildren();
+  if (tab==='toc') { book.chapters.forEach((c,i) => sb.append(el('button',{className:'it'+(i===ch?' cur':''), textContent:c.title, onclick:() => { goto(i); $('#side').hidden = true; }}))); return; }
+  if (!anns.length) sb.append(el('p',{className:'mut', textContent:'Nenhuma nota ainda. Selecione um trecho no texto para destacar ou anotar.'}));
+  [...anns].sort((a,b) => a.ch-b.ch || a.p-b.p || a.s-b.s).forEach(a => sb.append(
+    el('button',{className:'it', onclick:() => { goto(a.ch,0,a.id); $('#side').hidden = true; }},
+      el('small',{textContent:book.chapters[a.ch].title}), el('span',{className:'c'+a.c, textContent:a.text}),
+      ...(a.note ? [el('em',{textContent:a.note})] : []))));
+}
+
+/* ---- seleção, destaques e notas ---- */
+const pp = $('#pp');
+function pop(rect,node){
+  pp.replaceChildren(node); pp.hidden = false;
+  pp.style.left = Math.max(8, Math.min(innerWidth-pp.offsetWidth-8, rect.left+rect.width/2-pp.offsetWidth/2))+'px';
+  pp.style.top = Math.max(60, rect.top-pp.offsetHeight-8)+'px';
+  pp.querySelector('textarea')?.focus();
+}
+function hidePop(){ pp.hidden = true; }
+pp.addEventListener('mousedown', e => { if (e.target.tagName!=='TEXTAREA') e.preventDefault(); });
+document.addEventListener('mousedown', e => { if (!pp.contains(e.target)) hidePop(); });
+function noteNode(init,onSave,onDel){
+  const ta = el('textarea',{value:init, placeholder:'Sua anotação', rows:3});
+  const row = el('div',{className:'row'}, el('button',{textContent:'Salvar', onclick:() => onSave(ta.value.trim())}));
+  if (onDel) row.append(el('button',{textContent:'Remover', className:'del', onclick:onDel}));
+  return el('div',{className:'nb'}, ta, row);
+}
+let lastRect;
+function colorsNode(){
+  const d = el('div',{className:'cl'});
+  [1,2,3].forEach(c => d.append(el('button',{className:'dot c'+c, title:'Destacar', onclick:() => addAnn(c)})));
+  d.append(el('button',{textContent:'Nota', onclick:() => pop(lastRect, noteNode('', v => addAnn(1,v)))}));
+  return d;
+}
+async function addAnn(c,note=''){
+  const a = {id: crypto.randomUUID?.() || Date.now()+''+Math.random(), ch, ...pending, c, note,
+    text: T(book.chapters[ch].paragraphs[pending.p]).slice(pending.s,pending.e), t: Date.now()};
+  anns.push(a); await store.addAnnotation(book.id, a);
+  getSelection().removeAllRanges(); refresh();
+}
+function editAnn(id,rect){
+  const a = anns.find(x => x.id===id);
+  pop(rect, noteNode(a.note,
+    async v => { a.note = v; await store.updateAnnotation(book.id,id,{note:v}); refresh(); },
+    async () => { anns = anns.filter(x => x!==a); await store.removeAnnotation(book.id,id); refresh(); }));
+}
+function onSel(){
+  const s = getSelection(); if (!book || !s.rangeCount || s.isCollapsed) return;
+  const r = s.getRangeAt(0), rd = $('#rd');
+  const p = r.startContainer.parentElement?.closest('p[data-i]'), q = r.endContainer.parentElement?.closest('p[data-i]');
+  if (!p || p!==q || !rd.contains(p)) return;
+  const pre = document.createRange(); pre.selectNodeContents(p); pre.setEnd(r.startContainer, r.startOffset);
+  const st = pre.toString().length, e = st + r.toString().length;
+  if (e===st) return;
+  pending = {p:+p.dataset.i, s:st, e}; lastRect = r.getBoundingClientRect(); pop(lastRect, colorsNode());
+}
+['mouseup','touchend'].forEach(ev => document.addEventListener(ev, () => setTimeout(onSel, 20)));
+$('#rd').addEventListener('click', e => {
+  const m = e.target.closest('mark'); if (m && getSelection().isCollapsed) editAnn(m.dataset.id, m.getBoundingClientRect());
+});
+
+/* ---- rotas: #/ (estante) e #/livro/<id> ---- */
+function route(){ const m = location.hash.match(/^#\/livro\/(.+)/); m ? showBook(decodeURIComponent(m[1])) : showLibrary(); }
+addEventListener('hashchange', route);
+document.fonts?.addEventListener('loadingdone', relayout);
+(async () => { S = {...S, ...await store.getSettings()}; applySettings(); route(); })();
+</script>
+</body>
+</html>
